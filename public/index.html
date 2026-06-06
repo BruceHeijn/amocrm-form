@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Анкета кандидата</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <div class="info">
+        <div class="badge">amoCRM форма</div>
+        <h1>Анкета кандидата</h1>
+        <p>
+          Заполните данные кандидата. После ввода телефона система автоматически проверит дубль в amoCRM.
+        </p>
+
+        <div class="steps">
+          <div>1. Введите телефон</div>
+          <div>2. Дождитесь проверки</div>
+          <div>3. Создайте сделку</div>
+        </div>
+      </div>
+
+      <form id="leadForm" class="form">
+        <label>
+          ФИО *
+          <input type="text" id="name" name="name" required placeholder="Иван Иванов" />
+        </label>
+
+        <label>
+          Телефон *
+          <input type="tel" id="phone" name="phone" required placeholder="+7 999 123-45-67" />
+        </label>
+
+        <p id="phoneStatus" class="status hidden"></p>
+
+        <label>
+          Возраст *
+          <input type="number" id="age" name="age" required placeholder="35" />
+        </label>
+
+        <label>
+          Ответственный
+          <select id="responsible" name="responsible">
+            <option value="">Выберите ответственного</option>
+              <option value="Вадим Адясов">Вадим Адясов</option>
+              <option value="Отдел Кострюковой">Отдел Кострюковой</option>
+              <option value="Отдел Басов">Отдел Басов</option>
+              <option value="Отдел Сосновский">Отдел Сосновский</option>
+              <option value="Отдел Избякова">Отдел Избякова</option>
+              <option value="Отдел Лидеры">Отдел Лидеры</option>
+              <option value="Общий">Общий</option>
+          </select>
+        </label>
+
+        <label>
+          Когда связаться
+          <input type="datetime-local" id="contactTime" name="contactTime" />
+        </label>
+
+        <label>
+          Судимость *
+          <select id="criminalRecord" name="criminalRecord" required>
+            <option value="">Выберите вариант</option>
+            <option value="Нет">Нет</option>
+            <option value="Да">Да</option>
+          </select>
+        </label>
+
+        <label>
+          Заболевания *
+          <select id="diseases" name="diseases" required>
+            <option value="">Выберите вариант</option>
+            <option value="Нет">Нет</option>
+            <option value="Да">Да</option>
+          </select>
+        </label>
+
+        <label>
+          Примечание
+          <textarea id="note" name="note" placeholder="Дополнительная информация"></textarea>
+        </label>
+
+        <div id="formMessage" class="form-message hidden"></div>
+
+        <button id="submitButton" type="submit">Создать сделку</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
