@@ -4,6 +4,39 @@ const path = require('path');
 
 const tokensPath = path.join(__dirname, '..', 'tokens.json');
 
+const CONTACT_FIELDS = {
+  fullNameText: 1384039,
+  age: 1384129,
+  criminalRecord: 1384071,
+  diseases: 1384075
+};
+
+const LEAD_FIELDS = {
+  responsible: 1370187,
+  contactTime: 801763
+};
+
+const RESPONSIBLE_ENUMS = {
+  'Вадим Адясов': 1473199,
+  'Отдел Кострюковой': 1473201,
+  'Отдел Басов': 1473207,
+  'Отдел Сосновский': 1473209,
+  'Отдел Избякова': 1554907,
+  'Отдел Лидеры': 1482165,
+  'Общий': 1473273
+};
+
+const YES_NO_ENUMS = {
+  criminalRecord: {
+    'Да': 1481953,
+    'Нет': 1481955
+  },
+  diseases: {
+    'Да': 1481959,
+    'Нет': 1481961
+  }
+};
+
 function readTokens() {
   if (!fs.existsSync(tokensPath)) {
     return {
@@ -74,6 +107,57 @@ function getPhoneSearchVariants(phone) {
   }
 
   return [...new Set(variants)];
+}
+
+function toAmoDateTime(value) {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return Math.floor(date.getTime() / 1000);
+}
+
+function addTextField(fields, fieldId, value) {
+  if (value === undefined || value === null || value === '') return;
+
+  fields.push({
+    field_id: fieldId,
+    values: [
+      {
+        value
+      }
+    ]
+  });
+}
+
+function addEnumField(fields, fieldId, enumId) {
+  if (!enumId) return;
+
+  fields.push({
+    field_id: fieldId,
+    values: [
+      {
+        enum_id: enumId
+      }
+    ]
+  });
+}
+
+function addDateTimeField(fields, fieldId, timestamp) {
+  if (!timestamp) return;
+
+  fields.push({
+    field_id: fieldId,
+    values: [
+      {
+        value: timestamp
+      }
+    ]
+  });
 }
 
 async function refreshAccessToken() {
@@ -172,25 +256,44 @@ async function findContactByPhone(phone) {
   return null;
 }
 
-async function createContact({ name, phone }) {
+async function createContact(formData) {
+  const { name, phone, age, criminalRecord, diseases } = formData;
+
   const formattedPhone = formatPhoneForAmo(phone);
+
+  const customFields = [
+    {
+      field_code: 'PHONE',
+      values: [
+        {
+          value: formattedPhone,
+          enum_code: 'WORK'
+        }
+      ]
+    }
+  ];
+
+  addTextField(customFields, CONTACT_FIELDS.fullNameText, name);
+  addTextField(customFields, CONTACT_FIELDS.age, Number(age));
+
+  addEnumField(
+    customFields,
+    CONTACT_FIELDS.criminalRecord,
+    YES_NO_ENUMS.criminalRecord[criminalRecord]
+  );
+
+  addEnumField(
+    customFields,
+    CONTACT_FIELDS.diseases,
+    YES_NO_ENUMS.diseases[diseases]
+  );
 
   console.log('Создаём контакт:', name, formattedPhone);
 
   const response = await amoRequest('POST', '/api/v4/contacts', [
     {
       name,
-      custom_fields_values: [
-        {
-          field_code: 'PHONE',
-          values: [
-            {
-              value: formattedPhone,
-              enum_code: 'WORK'
-            }
-          ]
-        }
-      ]
+      custom_fields_values: customFields
     }
   ]);
 
@@ -201,23 +304,43 @@ async function createContact({ name, phone }) {
   return contact;
 }
 
-async function createLead({ name, contactId }) {
+async function createLead(formData, contactId) {
+  const { name, responsible, contactTime } = formData;
+
+  const customFields = [];
+
+  addEnumField(
+    customFields,
+    LEAD_FIELDS.responsible,
+    RESPONSIBLE_ENUMS[responsible]
+  );
+
+  addDateTimeField(
+    customFields,
+    LEAD_FIELDS.contactTime,
+    toAmoDateTime(contactTime)
+  );
+
   console.log('Создаём сделку для контакта:', contactId);
 
-  const response = await amoRequest('POST', '/api/v4/leads', [
-    {
-      name: `Заявка с формы: ${name}`,
-      pipeline_id: Number(process.env.AMO_PIPELINE_ID),
-      status_id: Number(process.env.AMO_STATUS_ID),
-      _embedded: {
-        contacts: [
-          {
-            id: contactId
-          }
-        ]
-      }
+  const leadData = {
+    name: `Заявка с формы: ${name}`,
+    pipeline_id: Number(process.env.AMO_PIPELINE_ID),
+    status_id: Number(process.env.AMO_STATUS_ID),
+    _embedded: {
+      contacts: [
+        {
+          id: contactId
+        }
+      ]
     }
-  ]);
+  };
+
+  if (customFields.length > 0) {
+    leadData.custom_fields_values = customFields;
+  }
+
+  const response = await amoRequest('POST', '/api/v4/leads', [leadData]);
 
   const lead = response?._embedded?.leads?.[0];
 
@@ -226,8 +349,31 @@ async function createLead({ name, contactId }) {
   return lead;
 }
 
+async function createLeadNote(leadId, noteText) {
+  if (!noteText || !noteText.trim()) {
+    return null;
+  }
+
+  console.log('Создаём примечание к сделке:', leadId);
+
+  const response = await amoRequest('POST', `/api/v4/leads/${leadId}/notes`, [
+    {
+      note_type: 'common',
+      params: {
+        text: noteText.trim()
+      }
+    }
+  ]);
+
+  const note = response?._embedded?.notes?.[0];
+
+  console.log('✅ Примечание создано. ID:', note?.id);
+
+  return note;
+}
+
 async function createContactAndLead(formData) {
-  const { name, phone } = formData;
+  const { phone, note } = formData;
 
   console.log('Запуск создания контакта и сделки');
 
@@ -242,20 +388,17 @@ async function createContactAndLead(formData) {
     };
   }
 
-  const contact = await createContact({
-    name,
-    phone
-  });
+  const contact = await createContact(formData);
 
-  const lead = await createLead({
-    name,
-    contactId: contact.id
-  });
+  const lead = await createLead(formData, contact.id);
+
+  const createdNote = await createLeadNote(lead.id, note);
 
   return {
     duplicate: false,
     contact,
-    lead
+    lead,
+    note: createdNote
   };
 }
 
@@ -269,5 +412,6 @@ module.exports = {
   findContactByPhone,
   createContact,
   createLead,
+  createLeadNote,
   createContactAndLead
 };

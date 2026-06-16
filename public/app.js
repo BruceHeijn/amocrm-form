@@ -36,6 +36,11 @@ function formatRussianPhone(value) {
   return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
 }
 
+function getValue(id) {
+  const element = document.getElementById(id);
+  return element ? element.value.trim() : '';
+}
+
 function setPhoneStatus(type, text) {
   phoneStatus.className = `status ${type}`;
   phoneStatus.textContent = text;
@@ -139,8 +144,14 @@ form.addEventListener('submit', async (event) => {
   }
 
   const data = {
-    name: document.getElementById('name').value.trim(),
-    phone: normalizedPhone
+    name: getValue('name'),
+    phone: normalizedPhone,
+    age: getValue('age'),
+    responsible: getValue('responsible'),
+    contactTime: getValue('contactTime'),
+    criminalRecord: getValue('criminalRecord'),
+    diseases: getValue('diseases'),
+    note: getValue('note')
   };
 
   try {
