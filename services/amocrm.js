@@ -134,6 +134,23 @@ function addTextField(fields, fieldId, value) {
   });
 }
 
+function addNumberField(fields, fieldId, value) {
+  if (value === undefined || value === null || value === '') return;
+
+  const numberValue = Number(value);
+
+  if (Number.isNaN(numberValue)) return;
+
+  fields.push({
+    field_id: fieldId,
+    values: [
+      {
+        value: numberValue
+      }
+    ]
+  });
+}
+
 function addEnumField(fields, fieldId, enumId) {
   if (!enumId) return;
 
@@ -220,6 +237,13 @@ async function amoRequest(method, url, data = null, isRetry = false) {
       return amoRequest(method, url, data, true);
     }
 
+    console.error('❌ amoCRM API error:', {
+      method,
+      url,
+      status,
+      data: error.response?.data
+    });
+
     throw error;
   }
 }
@@ -274,7 +298,7 @@ async function createContact(formData) {
   ];
 
   addTextField(customFields, CONTACT_FIELDS.fullNameText, name);
-  addTextField(customFields, CONTACT_FIELDS.age, Number(age));
+  addNumberField(customFields, CONTACT_FIELDS.age, age);
 
   addEnumField(
     customFields,
@@ -289,6 +313,7 @@ async function createContact(formData) {
   );
 
   console.log('Создаём контакт:', name, formattedPhone);
+  console.log('customFields contact:', JSON.stringify(customFields, null, 2));
 
   const response = await amoRequest('POST', '/api/v4/contacts', [
     {
@@ -322,6 +347,7 @@ async function createLead(formData, contactId) {
   );
 
   console.log('Создаём сделку для контакта:', contactId);
+  console.log('customFields lead:', JSON.stringify(customFields, null, 2));
 
   const leadData = {
     name: `Заявка с формы: ${name}`,
@@ -376,6 +402,7 @@ async function createContactAndLead(formData) {
   const { phone, note } = formData;
 
   console.log('Запуск создания контакта и сделки');
+  console.log('formData:', JSON.stringify(formData, null, 2));
 
   const existingContact = await findContactByPhone(phone);
 
