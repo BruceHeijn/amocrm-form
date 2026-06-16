@@ -290,11 +290,11 @@ async function createLead(formData, contactId) {
     RESPONSIBLE_ENUMS[responsible]
   );
 
-  addTextField(
-    customFields,
-    LEAD_FIELDS.contactTime,
-    contactTime
-  );
+  // addTextField(
+  //  customFields,
+  //  LEAD_FIELDS.contactTime,
+  //  contactTime
+  // );
 
   console.log('Создаём сделку для контакта:', contactId);
   console.log('customFields lead:', JSON.stringify(customFields, null, 2));
