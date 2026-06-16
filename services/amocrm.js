@@ -109,45 +109,12 @@ function getPhoneSearchVariants(phone) {
   return [...new Set(variants)];
 }
 
-function toAmoDateTime(value) {
-  if (!value) return null;
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return Math.floor(date.getTime() / 1000);
-}
-
 function addTextField(fields, fieldId, value) {
   if (value === undefined || value === null || value === '') return;
 
   fields.push({
     field_id: fieldId,
-    values: [
-      {
-        value
-      }
-    ]
-  });
-}
-
-function addNumberField(fields, fieldId, value) {
-  if (value === undefined || value === null || value === '') return;
-
-  const numberValue = Number(value);
-
-  if (Number.isNaN(numberValue)) return;
-
-  fields.push({
-    field_id: fieldId,
-    values: [
-      {
-        value: numberValue
-      }
-    ]
+    values: [{ value: String(value) }]
   });
 }
 
@@ -156,24 +123,7 @@ function addEnumField(fields, fieldId, enumId) {
 
   fields.push({
     field_id: fieldId,
-    values: [
-      {
-        enum_id: enumId
-      }
-    ]
-  });
-}
-
-function addDateTimeField(fields, fieldId, timestamp) {
-  if (!timestamp) return;
-
-  fields.push({
-    field_id: fieldId,
-    values: [
-      {
-        value: timestamp
-      }
-    ]
+    values: [{ enum_id: enumId }]
   });
 }
 
@@ -241,7 +191,7 @@ async function amoRequest(method, url, data = null, isRetry = false) {
       method,
       url,
       status,
-      data: error.response?.data
+      data: JSON.stringify(error.response?.data, null, 2)
     });
 
     throw error;
@@ -298,7 +248,7 @@ async function createContact(formData) {
   ];
 
   addTextField(customFields, CONTACT_FIELDS.fullNameText, name);
-  addNumberField(customFields, CONTACT_FIELDS.age, age);
+  addTextField(customFields, CONTACT_FIELDS.age, age);
 
   addEnumField(
     customFields,
@@ -340,10 +290,10 @@ async function createLead(formData, contactId) {
     RESPONSIBLE_ENUMS[responsible]
   );
 
-  addDateTimeField(
+  addTextField(
     customFields,
     LEAD_FIELDS.contactTime,
-    toAmoDateTime(contactTime)
+    contactTime
   );
 
   console.log('Создаём сделку для контакта:', contactId);
@@ -354,11 +304,7 @@ async function createLead(formData, contactId) {
     pipeline_id: Number(process.env.AMO_PIPELINE_ID),
     status_id: Number(process.env.AMO_STATUS_ID),
     _embedded: {
-      contacts: [
-        {
-          id: contactId
-        }
-      ]
+      contacts: [{ id: contactId }]
     }
   };
 
@@ -416,9 +362,7 @@ async function createContactAndLead(formData) {
   }
 
   const contact = await createContact(formData);
-
   const lead = await createLead(formData, contact.id);
-
   const createdNote = await createLeadNote(lead.id, note);
 
   return {
