@@ -127,6 +127,41 @@ function addEnumField(fields, fieldId, enumId) {
   });
 }
 
+function addDateTimeField(fields, fieldId, value) {
+  if (!value) return;
+
+  fields.push({
+    field_id: fieldId,
+    values: [{ value }]
+  });
+}
+
+function toAmoDateTime(value) {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const pad = (number) => String(number).padStart(2, '0');
+
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+
+  const timezoneOffset = -date.getTimezoneOffset();
+  const sign = timezoneOffset >= 0 ? '+' : '-';
+  const offsetHours = pad(Math.floor(Math.abs(timezoneOffset) / 60));
+  const offsetMinutes = pad(Math.abs(timezoneOffset) % 60);
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
+}
+
 async function refreshAccessToken() {
   console.log('🔄 Обновляем access token...');
 
@@ -290,10 +325,10 @@ async function createLead(formData, contactId) {
     RESPONSIBLE_ENUMS[responsible]
   );
 
-  addTextField(
-   customFields,
+  addDateTimeField(
+    customFields,
     LEAD_FIELDS.contactTime,
-   contactTime
+    toAmoDateTime(contactTime)
   );
 
   console.log('Создаём сделку для контакта:', contactId);
